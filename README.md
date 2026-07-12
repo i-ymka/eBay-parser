@@ -26,7 +26,7 @@ new match found → alert in your terminal (instantly)
 
 ## Try it in one command
 
-No server, no proxy, no accounts. Runs on your own machine, on your own connection.
+Runs on your own machine. No account, no server to rent.
 
 ```bash
 pipx install ebay-parser
@@ -35,7 +35,9 @@ ebay-parser
 
 First run asks what to track and your price limit — that's it. Matches show up live in your terminal.
 
-> Copy, paste, done. Everything below is optional.
+> **Heads up:** eBay blocks some connections outright as a bot-protection
+> measure. If yours is one of them, the setup lets you add a proxy — that fixes
+> it. Try without one first; add a proxy only if eBay turns you away.
 
 ---
 
@@ -47,10 +49,10 @@ Start simple. Level up only if you need to.
 |-------|-----|
 | Alerts in Discord | paste your channel's webhook URL |
 | Alerts in Telegram | connect your own bot in one step |
-| Heavier use without eBay slowdowns | add a proxy in the config |
+| To get past eBay blocking your connection | add a proxy in the setup |
 | 24/7 running | move it to a cheap VPS (guide included) |
 
-None of these are needed to start. The default — live alerts in your terminal — works out of the box.
+The default — live alerts in your terminal — works out of the box on connections eBay doesn't block.
 
 ---
 
@@ -69,7 +71,7 @@ A lightweight Python script checks eBay UK search results on a timer, parses new
 
 ## Stack
 
-Python · requests · BeautifulSoup
+Python · curl_cffi · BeautifulSoup
 
 ---
 
