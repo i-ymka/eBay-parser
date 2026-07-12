@@ -148,9 +148,28 @@ class Scraper:
             return 0.0
 
     def _price(self, card) -> float:
+        # eBay varies the price markup between card layouts, so fall back
+        # through progressively looser selectors.
         span = card.find("span", class_=lambda c: c and "price" in str(c))
         if span:
-            return self._parse_amount(span.get_text(strip=True))
+            amount = self._parse_amount(span.get_text(strip=True))
+            if amount > 0:
+                return amount
+
+        elem = card.find(class_=re.compile(r"price", re.I))
+        if elem:
+            amount = self._parse_amount(elem.get_text(strip=True))
+            if amount > 0:
+                return amount
+
+        for elem in card.find_all(["span", "div"]):
+            text = elem.get_text(strip=True)
+            if "£" in text and not any(
+                word in text.lower() for word in ("delivery", "postage", "shipping")
+            ):
+                amount = self._parse_amount(text)
+                if amount > 0:
+                    return amount
         return 0.0
 
     def _delivery(self, card) -> float:
