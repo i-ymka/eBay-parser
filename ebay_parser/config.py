@@ -25,6 +25,7 @@ class Search:
 class Config:
     searches: list[Search]
     interval_seconds: int = DEFAULT_INTERVAL
+    proxy: str | None = None
 
 
 def exists() -> bool:
@@ -44,6 +45,7 @@ def load() -> Config:
     return Config(
         searches=searches,
         interval_seconds=int(data.get("interval_seconds", DEFAULT_INTERVAL)),
+        proxy=data.get("proxy") or None,
     )
 
 
@@ -60,6 +62,8 @@ def save(config: Config) -> None:
             for s in config.searches
         ],
     }
+    if config.proxy:
+        data["proxy"] = config.proxy
     CONFIG_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
@@ -84,7 +88,13 @@ def run_setup() -> Config:
         f"\nHow often to check, in seconds [{DEFAULT_INTERVAL}]: "
     )
 
-    config = Config(searches=searches, interval_seconds=interval)
+    print(
+        "\nProxy (optional). eBay blocks some connections outright; if yours is\n"
+        "one of them, a proxy fixes it. Format: http://user:pass@host:port"
+    )
+    proxy = input("  Proxy URL, or leave blank for none: ").strip() or None
+
+    config = Config(searches=searches, interval_seconds=interval, proxy=proxy)
     save(config)
     print(f"\nSaved to {CONFIG_PATH}")
     return config

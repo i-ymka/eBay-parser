@@ -2,31 +2,29 @@
 
 from __future__ import annotations
 
-import random
 import re
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
-import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests
 
 BASE_URL = "https://www.ebay.co.uk"
 SEARCH_PATH = "/sch/i.html"
 
-# A few current desktop user agents; one is picked per session.
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0",
-]
+# Impersonate a real Chrome TLS fingerprint; eBay's edge rejects the default
+# Python client fingerprint outright.
+IMPERSONATE = "chrome"
 
 BOT_PROTECTION_MARKERS = (
     "pardon our interruption",
+    "checking your browser",
     "to best protect our members",
     "verify you're a real person",
 )
+
+# eBay network failures the caller may want to retry.
+NetworkError = requests.RequestsError
 
 
 class BlockedError(RuntimeError):
@@ -50,26 +48,27 @@ class Listing:
 class Scraper:
     """Runs eBay UK searches and returns parsed Buy It Now listings."""
 
-    def __init__(self, results_per_page: int = 60, timeout: int = 30):
+    def __init__(
+        self,
+        proxy: str | None = None,
+        results_per_page: int = 60,
+        timeout: int = 30,
+    ):
         self.results_per_page = results_per_page
         self.timeout = timeout
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": random.choice(USER_AGENTS),
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
-                "image/avif,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-GB,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Referer": f"{BASE_URL}/",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "same-origin",
-                "Sec-Fetch-User": "?1",
-            }
-        )
+        proxies = {"http": proxy, "https": proxy} if proxy else None
+        self.session = requests.Session(impersonate=IMPERSONATE, proxies=proxies)
+        self.session.headers.update({"Accept-Language": "en-GB,en;q=0.9"})
+        self._primed = False
+
+    def _prime(self) -> None:
+        """Visit the homepage once to obtain the session cookies eBay's search
+        endpoint requires; without them it answers every query with 403."""
+        try:
+            self.session.get(f"{BASE_URL}/", timeout=self.timeout)
+            self._primed = True
+        except requests.RequestsError:
+            pass
 
     def build_url(self, keyword: str, category_id: int | None) -> str:
         params = {
@@ -88,8 +87,11 @@ class Scraper:
 
         Raises:
             BlockedError: if eBay returns its bot-protection page.
-            requests.RequestException: on network failure.
+            NetworkError: on network failure.
         """
+        if not self._primed:
+            self._prime()
+
         response = self.session.get(
             self.build_url(keyword, category_id), timeout=self.timeout
         )

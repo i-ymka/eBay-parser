@@ -5,11 +5,9 @@ from __future__ import annotations
 import random
 import time
 
-import requests
-
 from . import notify
 from .config import Config, SEEN_PATH
-from .scraper import BlockedError, Scraper
+from .scraper import BlockedError, NetworkError, Scraper
 from .store import SeenStore
 
 # How long to back off after eBay shows its bot-protection page.
@@ -19,7 +17,7 @@ _BLOCKED_BACKOFF = 600
 class Monitor:
     def __init__(self, config: Config):
         self.config = config
-        self.scraper = Scraper()
+        self.scraper = Scraper(proxy=config.proxy)
         self.seen = SeenStore(SEEN_PATH)
 
     def run(self) -> None:
@@ -56,7 +54,7 @@ class Monitor:
                 )
                 time.sleep(_BLOCKED_BACKOFF)
                 return
-            except requests.RequestException as exc:
+            except NetworkError as exc:
                 print(f"Network error on '{search.keyword}': {exc}")
                 continue
 

@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
 ]
 dependencies = [
-    "requests>=2.31",
+    "curl_cffi>=0.7",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
 ]
