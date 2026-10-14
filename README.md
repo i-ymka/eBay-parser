@@ -4,7 +4,7 @@
 
 **Spot underpriced eBay UK listings the moment they appear — right from your terminal**
 
-[![status](https://img.shields.io/badge/status-early%20development-F5A623?style=flat-square)](#)&nbsp;&nbsp;[![platform](https://img.shields.io/badge/runs-anywhere-2ECC71?style=flat-square)](#)&nbsp;&nbsp;[![built with](https://img.shields.io/badge/built%20with-Python-3776AB?style=flat-square)](#)
+[![status](https://img.shields.io/badge/status-working%20v0.1-2ECC71?style=flat-square)](#)&nbsp;&nbsp;[![platform](https://img.shields.io/badge/runs-anywhere-2ECC71?style=flat-square)](#)&nbsp;&nbsp;[![built with](https://img.shields.io/badge/built%20with-Python-3776AB?style=flat-square)](#)
 
 </div>
 
@@ -24,59 +24,44 @@ eBay Parser checks eBay UK every minute
 new match found → alert in your terminal (instantly)
 ```
 
-## Try it in one command
+## Install and run
 
-Runs on your own machine. No account, no server to rent.
+Runs on your own machine. No account, no server to rent. Python 3.9+.
 
 ```bash
-pipx install ebay-parser
+pipx install git+https://github.com/i-ymka/eBay-parser
 ebay-parser
 ```
 
-First run asks what to track and your price limit — that's it. Matches show up live in your terminal.
+First run asks what to track and your price limit — that's it. Matches show up live in your terminal, with a desktop notification on macOS and Linux. Run `ebay-parser setup` any time to change your searches.
 
-> **Heads up:** eBay blocks some connections outright as a bot-protection
-> measure. If yours is one of them, the setup lets you add a proxy — that fixes
-> it. Try without one first; add a proxy only if eBay turns you away.
-
----
-
-## Optional extras (add when you want them)
-
-Start simple. Level up only if you need to.
-
-| Want… | Add |
-|-------|-----|
-| Alerts in Discord | paste your channel's webhook URL |
-| Alerts in Telegram | connect your own bot in one step |
-| To get past eBay blocking your connection | add a proxy in the setup |
-| 24/7 running | move it to a cheap VPS (guide included) |
-
-The default — live alerts in your terminal — works out of the box on connections eBay doesn't block.
+> **Heads up:** eBay blocks some connections outright. If yours is one of them,
+> the setup lets you add a proxy. Try without one first.
 
 ---
 
 ## How it works
 
-A lightweight Python script checks eBay UK search results on a timer, parses new Buy It Now listings, filters by your price limit, and alerts you once per item (no repeats). It's deliberately simple: plain HTTP requests, no headless browser, so it's light enough to run on a laptop and leave open.
+- **Looks like a normal browser to eBay.** Requests go through `curl_cffi` with Chrome's TLS fingerprint, and the session visits the homepage once to pick up the cookies eBay's search expects.
+- **Knows when it's being turned away.** A 403/429 or eBay's "Pardon our interruption" page is treated as a block: the monitor backs off for 10 minutes instead of hammering the site.
+- **Parses defensively.** Price, delivery cost, title and link each have fallbacks for eBay's different card layouts; foreign-currency listings are skipped so totals stay in £.
+- **Alerts once per item.** Seen listing IDs are stored locally, and the first pass only records what's already listed, so you're alerted to genuinely new items.
+- **Polite timing.** Each check waits your interval with ±10% jitter.
+
+Plain HTTP, no headless browser — light enough to leave running on a laptop.
 
 ## Roadmap
 
-- [ ] One-command install (`pipx install ebay-parser`)
-- [ ] Interactive first-run setup — no config files to edit
-- [ ] Live terminal + desktop notifications (zero accounts)
-- [ ] Discord & Telegram alert channels (optional)
-- [ ] Optional proxy support for heavier use
+- [x] Install straight from GitHub with `pipx`
+- [x] Interactive first-run setup — no config files to edit
+- [x] Live terminal alerts + desktop notifications (macOS / Linux)
+- [x] Optional proxy support
+- [x] Block detection with automatic back-off
+- [ ] Publish to PyPI (`pipx install ebay-parser`)
+- [ ] Discord & Telegram alert channels
+- [ ] Guide for running 24/7 on a cheap VPS
 - [ ] More marketplaces beyond eBay UK
 
 ## Stack
 
-Python · curl_cffi · BeautifulSoup
-
----
-
-<div align="center">
-
-*Early development — star the repo to follow along.*
-
-</div>
+Python · curl_cffi · BeautifulSoup · lxml
